@@ -1,0 +1,89 @@
+# String file for the Rediscover Releases plugin
+
+PLUGIN_REDISCOVER_RELEASES
+	EN	Rediscover Releases
+
+PLUGIN_REDISCOVER_RELEASES_DESC
+	EN	A Material skin home row of random releases that prefers albums with no recent plays.
+
+PLUGIN_REDISCOVER_RELEASES_ABOUT
+	EN	This plugin provides a list of random releases that follow a well-defined criteria: it prioritizes albums with no recent playbacks, supports restricting the genre list, lets you choose how often the list is regenerated, and offers deep configuration. It only supports the Material skin. The list persists for a configurable number of hours; releases on it that get played in full are removed until the next regeneration.<br><br>After adding this plugin, enable the new <b>Rediscover Releases</b> row in Material's <i>Settings &gt; Interface</i> (home screen rows) and set the desired position. You can then save that setup as the default for all Material clients and apps.
+
+PLUGIN_REDISCOVER_RELEASES_STATUS
+	EN	Current list
+
+PLUGIN_REDISCOVER_RELEASES_STATUS_LIST
+	EN	%s releases, built %s. Next regeneration: %s.
+
+PLUGIN_REDISCOVER_RELEASES_STATUS_POOLS
+	EN	At the last build the library had %s played releases not played within the period, %s played within it and %s unplayed; the list got %s unplayed ones.
+
+PLUGIN_REDISCOVER_RELEASES_STATUS_NONE
+	EN	No list yet. It is built a minute after the server starts (or after a library scan finishes).
+
+PLUGIN_REDISCOVER_RELEASES_REGENERATE
+	EN	Regenerate List Now
+
+PLUGIN_REDISCOVER_RELEASES_REGENERATED
+	EN	The list has been regenerated.
+
+PLUGIN_REDISCOVER_RELEASES_COUNT
+	EN	Number of releases to include in the Rediscover list
+
+PLUGIN_REDISCOVER_RELEASES_COUNT_DESC
+	EN	10 to 1000. The list can be shorter if the library doesn't have enough releases that match.
+
+PLUGIN_REDISCOVER_RELEASES_MONTHS
+	EN	Prioritize inclusion of releases not played for the last
+
+PLUGIN_REDISCOVER_RELEASES_MONTHS_DESC
+	EN	1 to 99 months. A release counts as played on the date of the oldest last play among its tracks, so it is only "recently played" once all of it has been heard recently. Releases played within this period are only used when there aren't enough others.
+
+PLUGIN_REDISCOVER_RELEASES_MONTHS_UNIT
+	EN	months
+
+PLUGIN_REDISCOVER_RELEASES_UNPLAYED
+	EN	Include unplayed releases in the list
+
+PLUGIN_REDISCOVER_RELEASES_UNPLAYED_DESC
+	EN	Releases none of whose tracks have been played (and, depending on the setting below, partially played ones).
+
+PLUGIN_REDISCOVER_RELEASES_MINPLAYED
+	EN	Ensure that at least this share of the list is already-played releases
+
+PLUGIN_REDISCOVER_RELEASES_MINPLAYED_DESC
+	EN	0 to 100 %. The rest of the list is picked at random from played (not recently) and unplayed releases together.
+
+PLUGIN_REDISCOVER_RELEASES_GENRES
+	EN	Include the selected genres
+
+PLUGIN_REDISCOVER_RELEASES_GENRES_DESC
+	EN	A release is included if any of its tracks has one of the selected genres. The number after each genre is its number of releases.
+
+PLUGIN_REDISCOVER_RELEASES_ALL_GENRES
+	EN	All genres
+
+PLUGIN_REDISCOVER_RELEASES_PARTIAL
+	EN	Partially played releases are assumed as
+
+PLUGIN_REDISCOVER_RELEASES_PARTIAL_DESC
+	EN	Releases with some, but not all, tracks played. As played, the date used is the oldest last play among the played tracks.
+
+PLUGIN_REDISCOVER_RELEASES_AS_UNPLAYED
+	EN	Unplayed
+
+PLUGIN_REDISCOVER_RELEASES_AS_PLAYED
+	EN	Played
+
+PLUGIN_REDISCOVER_RELEASES_HOURS
+	EN	Rebuild the Rediscover list every
+
+PLUGIN_REDISCOVER_RELEASES_HOURS_DESC
+	EN	1 to 999 hours. Saving changed list settings also rebuilds it.
+
+PLUGIN_REDISCOVER_RELEASES_HOURS_UNIT
+	EN	hours
+
+PLUGIN_REDISCOVER_RELEASES_EMPTY
+	EN	The Rediscover list is empty.
+

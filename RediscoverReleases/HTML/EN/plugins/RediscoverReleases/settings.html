@@ -1,0 +1,62 @@
+[% PROCESS settings/header.html %]
+
+[% WRAPPER setting title="PLUGIN_REDISCOVER_RELEASES" desc="" %]
+	<div>[% 'PLUGIN_REDISCOVER_RELEASES_ABOUT' | string %]</div>
+[% END %]
+
+[% WRAPPER setting title="PLUGIN_REDISCOVER_RELEASES_STATUS" desc="" %]
+	<div>
+	[% IF builtAt %]
+		[% 'PLUGIN_REDISCOVER_RELEASES_STATUS_LIST' | string(listCount, builtAt, nextAt) %]
+		[% IF stats.chosen.defined %]<br>[% 'PLUGIN_REDISCOVER_RELEASES_STATUS_POOLS' | string(stats.old, stats.recent, stats.unplayed, stats.chosenUnplayed) %][% END %]
+	[% ELSE %]
+		[% 'PLUGIN_REDISCOVER_RELEASES_STATUS_NONE' | string %]
+	[% END %]
+	</div>
+	<br>
+	<input name="regenerate" type="submit" class="stdclick" value="[% 'PLUGIN_REDISCOVER_RELEASES_REGENERATE' | string %]">
+[% END %]
+
+[% WRAPPER setting title="PLUGIN_REDISCOVER_RELEASES_COUNT" desc="PLUGIN_REDISCOVER_RELEASES_COUNT_DESC" %]
+	<input type="number" name="pref_count" value="[% prefs.pref_count %]" min="10" max="1000" class="stdedit" style="width:6em">
+[% END %]
+
+[% WRAPPER setting title="PLUGIN_REDISCOVER_RELEASES_MONTHS" desc="PLUGIN_REDISCOVER_RELEASES_MONTHS_DESC" %]
+	<input type="number" name="pref_months" value="[% prefs.pref_months %]" min="1" max="99" class="stdedit" style="width:6em">
+	[% 'PLUGIN_REDISCOVER_RELEASES_MONTHS_UNIT' | string %]
+[% END %]
+
+[% WRAPPER setting title="PLUGIN_REDISCOVER_RELEASES_UNPLAYED" desc="PLUGIN_REDISCOVER_RELEASES_UNPLAYED_DESC" %]
+	<input type="checkbox" name="pref_includeUnplayed" id="pref_includeUnplayed" value="1" [% IF prefs.pref_includeUnplayed %]checked="checked"[% END %]>
+	<label for="pref_includeUnplayed">[% 'PLUGIN_REDISCOVER_RELEASES_UNPLAYED' | string %]</label>
+[% END %]
+
+[% WRAPPER setting title="PLUGIN_REDISCOVER_RELEASES_MINPLAYED" desc="PLUGIN_REDISCOVER_RELEASES_MINPLAYED_DESC" %]
+	<input type="number" name="pref_minPlayedPct" value="[% prefs.pref_minPlayedPct %]" min="0" max="100" class="stdedit" style="width:6em"> %
+[% END %]
+
+[% WRAPPER setting title="PLUGIN_REDISCOVER_RELEASES_GENRES" desc="PLUGIN_REDISCOVER_RELEASES_GENRES_DESC" %]
+	<input type="checkbox" name="allGenres" id="allGenres" value="1" [% IF allGenres %]checked="checked"[% END %]
+		onclick="document.getElementById('rediscoverGenres').style.display = this.checked ? 'none' : 'block'">
+	<label for="allGenres">[% 'PLUGIN_REDISCOVER_RELEASES_ALL_GENRES' | string %]</label>
+	<div id="rediscoverGenres" style="display:[% IF allGenres %]none[% ELSE %]block[% END %]; max-height:20em; overflow-y:auto; margin-top:0.5em; padding:0.25em 0.5em; border:1px solid rgba(128,128,128,0.4)">
+	[% FOREACH genre = genreList %]
+		<input type="checkbox" name="genre_[% genre.id %]" id="genre_[% genre.id %]" value="[% genre.name | html %]" [% IF genre.selected %]checked="checked"[% END %]>
+		<label for="genre_[% genre.id %]">[% genre.name | html %] ([% genre.albums %])</label><br>
+	[% END %]
+	</div>
+[% END %]
+
+[% WRAPPER setting title="PLUGIN_REDISCOVER_RELEASES_PARTIAL" desc="PLUGIN_REDISCOVER_RELEASES_PARTIAL_DESC" %]
+	<select name="pref_partialAs" class="stdedit">
+		<option value="unplayed" [% IF prefs.pref_partialAs == 'unplayed' %]selected[% END %]>[% 'PLUGIN_REDISCOVER_RELEASES_AS_UNPLAYED' | string %]</option>
+		<option value="played" [% IF prefs.pref_partialAs == 'played' %]selected[% END %]>[% 'PLUGIN_REDISCOVER_RELEASES_AS_PLAYED' | string %]</option>
+	</select>
+[% END %]
+
+[% WRAPPER setting title="PLUGIN_REDISCOVER_RELEASES_HOURS" desc="PLUGIN_REDISCOVER_RELEASES_HOURS_DESC" %]
+	<input type="number" name="pref_rebuildHours" value="[% prefs.pref_rebuildHours %]" min="1" max="999" class="stdedit" style="width:6em">
+	[% 'PLUGIN_REDISCOVER_RELEASES_HOURS_UNIT' | string %]
+[% END %]
+
+[% PROCESS settings/footer.html %]

@@ -1,0 +1,19 @@
+<?xml version='1.0' standalone='yes'?>
+<extensions>
+  <id>b2d1642b-cfb9-4ef7-b578-8da89c524bf8</id>
+  <name>PLUGIN_REDISCOVER_RELEASES</name>
+  <module>Plugins::RediscoverReleases::Plugin</module>
+  <version>1.0.0</version>
+  <description>PLUGIN_REDISCOVER_RELEASES_DESC</description>
+  <creator>arigit</creator>
+  <homepageURL>https://github.com/arigit/LMS-Rediscover-Your-Music</homepageURL>
+  <icon>plugins/RediscoverReleases/html/images/icon_svg.png</icon>
+  <optionsURL>plugins/RediscoverReleases/settings.html</optionsURL>
+  <defaultState>enabled</defaultState>
+  <type>2</type>
+  <targetApplication>
+    <id>SlimServer</id>
+    <minVersion>8.0.0</minVersion>
+    <maxVersion>*</maxVersion>
+  </targetApplication>
+</extensions>
