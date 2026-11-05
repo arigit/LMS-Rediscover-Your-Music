@@ -188,13 +188,15 @@ sub albumStats {
 	}
 	$sql .= ' GROUP BY tracks.album';
 
-	return $dbh->selectall_arrayref($sql, undef, @genres) || [];
+	# The database holds UTF-8 bytes (LMS's own queries decode and encode like this too).
+	my @bind = map { my $g = $_; utf8::encode($g) if utf8::is_utf8($g); $g } @genres;
+	return $dbh->selectall_arrayref($sql, undef, @bind) || [];
 }
 
 # Library genres for the settings page: [[name, albums], ...] by name.
 sub genres {
 	my $dbh = Slim::Schema->dbh;
-	return $dbh->selectall_arrayref(q{
+	my $rows = $dbh->selectall_arrayref(q{
 		SELECT genres.name, COUNT(DISTINCT tracks.album)
 		FROM genres
 		JOIN genre_track ON genre_track.genre = genres.id
@@ -203,6 +205,8 @@ sub genres {
 		GROUP BY genres.id
 		ORDER BY genres.namesort
 	}) || [];
+	utf8::decode($_->[0]) for @$rows;
+	return $rows;
 }
 
 # A song of this album started.
@@ -313,7 +317,11 @@ sub albumDetails {
 			FROM albums
 			LEFT JOIN contributors ON contributors.id = albums.contributor
 			WHERE albums.id IN (} . join(',', map { '?' } @chunk) . ')', { Slice => {} }, @chunk);
-		$byId{$_->{id}} = $_ for @$rows;
+		foreach my $row (@$rows) {
+			utf8::decode($row->{title}) if defined $row->{title};
+			utf8::decode($row->{name}) if defined $row->{name};
+			$byId{$row->{id}} = $row;
+		}
 	}
 	return [ grep { $_ } map { $byId{$_} } @list ];
 }

@@ -210,5 +210,22 @@ subtest 'rescan' => sub {
 	is(scalar @{ $TestPrefs::values{list} }, 100, 'mostly gone: rebuilt');
 };
 
+subtest 'text is decoded' => sub {
+	my $row = $dbh->selectrow_arrayref(q{SELECT id, title FROM albums WHERE title GLOB '*[^ -~]*' LIMIT 1});
+	my ($id, $raw) = $row ? @$row : ();
+	plan skip_all => 'no album title with non-ASCII characters' unless $id;
+	setPrefs(list => [$id]);
+	my ($album) = @{ Plugins::RediscoverReleases::List::albumDetails() };
+	my $expected = $raw; utf8::decode($expected);
+	is($album->{title}, $expected, 'album title decoded once');
+	ok(utf8::is_utf8($album->{title}), 'character string');
+
+	my ($genre) = grep { $_->[0] =~ /[^\x00-\x7f]/ } @{ Plugins::RediscoverReleases::List::genres() };
+	if ($genre) {
+		setPrefs(genres => [ $genre->[0] ]);
+		is(scalar @{ Plugins::RediscoverReleases::List::albumStats() }, $genre->[1], "filter by non-ASCII genre '$genre->[0]'");
+	}
+};
+
 is_deeply(\@main::errors, [], 'no errors logged');
 done_testing();
