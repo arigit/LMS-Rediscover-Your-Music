@@ -1,8 +1,8 @@
 package Plugins::RediscoverReleases::HomeExtras;
 
 # The Material skin home row. Material asks for the row's items with "rediscoverhome items <index> <quantity>",
-# which the OPML feed below answers; tapping an album opens its tracks (LMS's own album track list), and its play
-# buttons play the album. The feed is the whole list, so the row and its "more" view are the same items.
+# which the OPML feed below answers. Album items carry LMS's album actions, so tapping one opens Material's album view,
+# and its play buttons play the album. The feed is the whole list, so the row and its "more" view are the same items.
 
 use strict;
 
@@ -47,7 +47,23 @@ sub _albumItem {
 	my $artist = $album->{name} || '';
 	my $title  = $album->{title} || '';
 
+	# The actions LMS gives its own album items. Material turns 'items' (browselibrary, mode tracks) into its own
+	# album view; without them a tap opened this feed's plain track list (1.0.1).
+	my %album = (album_id => $album->{id}, library_id => -1);
+	# At most 4 of LMS's 5 actions (insert is left to the feed's own action): with all 5, or allAvailableActionsDefined,
+	# LMS leaves out the item's item_id, which Material builds the item's id from; without it the id has no ':' and
+	# Material's album view failed (TypeError in browseHandleListResponse).
+	my %actions = (
+		info   => { command => ['albuminfo', 'items'], fixedParams => { %album } },
+		items  => { command => ['browselibrary', 'items'], fixedParams => { mode => 'tracks', %album } },
+		play   => { command => ['playlistcontrol'], fixedParams => { cmd => 'load', %album } },
+		add    => { command => ['playlistcontrol'], fixedParams => { cmd => 'add', %album } },
+	);
+	$actions{playall} = $actions{play};
+	$actions{addall}  = $actions{add};
+
 	return {
+		itemActions => \%actions,
 		name     => $title,   # also the favourite's name, like LMS's own album favourites
 		line1    => $title,
 		line2    => $artist . ($album->{year} ? ' (' . $album->{year} . ')' : ''),
