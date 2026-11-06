@@ -60,32 +60,40 @@
 [% END %]
 
 [% WRAPPER setting title="PLUGIN_REDISCOVER_RELEASES_LIBRARY" desc="PLUGIN_REDISCOVER_RELEASES_LIBRARY_DESC" %]
-	<select name="pref_libraryId" class="stdedit">
+	<select name="pref_libraryId" class="stdedit"
+		onchange="document.getElementById('rediscoverLibraryMatch').style.display = this.value ? 'inline-block' : 'none'">
 		<option value="" [% IF !prefs.pref_libraryId %]selected[% END %]>[% 'PLUGIN_REDISCOVER_RELEASES_LIBRARY_NONE' | string %]</option>
 		[% FOREACH library = libraryList %]
 		<option value="[% library.0 | html %]" [% IF prefs.pref_libraryId == library.0 %]selected[% END %]>[% library.1 | html %]</option>
 		[% END %]
 		[% IF libraryMissing %]<option value="[% libraryMissing | html %]" selected>[% IF libraryGone %][% 'PLUGIN_REDISCOVER_RELEASES_LIBRARY_MISSING' | string %][% ELSE %][% libraryMissing | html %][% END %]</option>[% END %]
 	</select>
+	<!-- only relevant with a view: hidden for the whole library. The settings page replaces each select with its own
+	     widget, so the wrapper is what gets hidden. -->
+	<span id="rediscoverLibraryMatch" style="display:[% IF prefs.pref_libraryId %]inline-block[% ELSE %]none[% END %]">
 	<select name="pref_libraryMatch" class="stdedit">
 		<option value="any" [% IF prefs.pref_libraryMatch != 'all' %]selected[% END %]>[% 'PLUGIN_REDISCOVER_RELEASES_LIBRARY_ANY' | string %]</option>
 		<option value="all" [% IF prefs.pref_libraryMatch == 'all' %]selected[% END %]>[% 'PLUGIN_REDISCOVER_RELEASES_LIBRARY_ALL' | string %]</option>
 	</select>
+	</span>
 [% END %]
 
 [% WRAPPER setting title="PLUGIN_REDISCOVER_RELEASES_RATING" desc="PLUGIN_REDISCOVER_RELEASES_RATING_DESC" %]
-	<select name="pref_minRating" class="stdedit">
+	<select name="pref_minRating" class="stdedit"
+		onchange="document.getElementById('rediscoverUnrated').style.display = this.value != '0' ? 'block' : 'none'">
 		<option value="0" [% IF !prefs.pref_minRating %]selected[% END %]>[% 'PLUGIN_REDISCOVER_RELEASES_RATING_OFF' | string %]</option>
 		[% FOREACH r = ratingChoices %]
 		<option value="[% r.value %]" [% IF prefs.pref_minRating == r.value %]selected[% END %]>[% 'PLUGIN_REDISCOVER_RELEASES_RATING_STARS' | string(r.stars) %]</option>
 		[% END %]
 	</select>
-	<br><br>
+	<!-- only relevant with a minimum rating: hidden for "Any rating" -->
+	<div id="rediscoverUnrated" style="display:[% IF prefs.pref_minRating %]block[% ELSE %]none[% END %]; margin-top:1em">
 	[% 'PLUGIN_REDISCOVER_RELEASES_UNRATED' | string %]
 	<select name="pref_includeUnrated" class="stdedit">
 		<option value="1" [% IF prefs.pref_includeUnrated %]selected[% END %]>[% 'PLUGIN_REDISCOVER_RELEASES_INCLUDED' | string %]</option>
 		<option value="0" [% IF !prefs.pref_includeUnrated %]selected[% END %]>[% 'PLUGIN_REDISCOVER_RELEASES_LEFT_OUT' | string %]</option>
 	</select>
+	</div>
 [% END %]
 
 [% WRAPPER setting title="PLUGIN_REDISCOVER_RELEASES_PARTIAL" desc="PLUGIN_REDISCOVER_RELEASES_PARTIAL_DESC" %]
