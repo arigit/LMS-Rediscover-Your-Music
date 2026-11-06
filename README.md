@@ -92,7 +92,7 @@ if most of the list is gone, it is rebuilt.
 |---|---|---|
 | Number of releases to include in the Rediscover list | 10–1000 | 250 |
 | Prioritize inclusion of releases not played for the last … months | 1–99 | 12 |
-| Include unplayed releases in the list | on/off | on |
+| Unplayed releases: include in the list | on/off | on |
 | Ensure that at least … % of already-played releases are included | 0–100 | 20 |
 | Genres | All genres / Only the selected genres / All except the selected genres, and the genres of the library (with *Select all* and *Select none*) | All genres |
 | Only releases in this Library View | Whole library, or one of LMS's Library Views; with any / all of its tracks in it | Whole library, any |

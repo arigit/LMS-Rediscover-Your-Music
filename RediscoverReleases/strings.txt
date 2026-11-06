@@ -46,7 +46,10 @@ PLUGIN_REDISCOVER_RELEASES_MONTHS_UNIT
 	EN	months
 
 PLUGIN_REDISCOVER_RELEASES_UNPLAYED
-	EN	Include unplayed releases in the list
+	EN	Unplayed releases
+
+PLUGIN_REDISCOVER_RELEASES_UNPLAYED_INCLUDE
+	EN	Include in the list
 
 PLUGIN_REDISCOVER_RELEASES_UNPLAYED_DESC
 	EN	Releases none of whose tracks have been played (and, depending on the setting below, partially played ones).
