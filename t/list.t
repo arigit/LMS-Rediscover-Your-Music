@@ -22,12 +22,14 @@ BEGIN {
 	use constant INFOLOG => 0;
 	use constant DEBUGLOG => 0;
 
-	$INC{$_} = 1 for qw(Slim/Utils/Log.pm Slim/Utils/Prefs.pm Slim/Utils/Timers.pm Slim/Music/Import.pm Slim/Schema.pm);
+	$INC{$_} = 1 for qw(Slim/Utils/Log.pm Slim/Utils/Prefs.pm Slim/Utils/Timers.pm Slim/Music/Import.pm Slim/Schema.pm
+		Slim/Music/VirtualLibraries.pm);
 
 	package TestLog;
 	sub new { bless {}, shift }
 	sub AUTOLOAD { return 0 }
 	sub error { shift; push @main::errors, join('', @_) }
+	sub warn { shift; push @main::warnings, join('', @_) }
 
 	package Slim::Utils::Log;
 	sub import { no strict 'refs'; *{caller() . '::logger'} = sub { TestLog->new } }
@@ -52,6 +54,9 @@ BEGIN {
 	package Slim::Schema;
 	our $dbh;
 	sub dbh { $dbh }
+
+	package Slim::Music::VirtualLibraries;
+	sub getLibraries { {} }   # List.pm falls back to the library_track table
 }
 
 $Slim::Schema::dbh = DBI->connect("dbi:SQLite:dbname=$libraryDb", '', '', { RaiseError => 1, AutoCommit => 1 });
@@ -68,7 +73,8 @@ use lib "$FindBin::Bin/../RediscoverReleases/..";
 
 my $dbh = $Slim::Schema::dbh;
 my %defaults = (count => 250, months => 12, includeUnplayed => 1, minPlayedPct => 20, genres => [], partialAs => 'unplayed',
-	rebuildHours => 24, list => [], builtAt => 0, version => 0);
+	rebuildHours => 24, list => [], builtAt => 0, version => 0, libraryId => '', libraryMatch => 'any', minRating => 0,
+	includeUnrated => 1, dstmAlbums => 1);
 
 sub setPrefs { %TestPrefs::values = (%defaults, @_) }
 
@@ -168,6 +174,115 @@ subtest 'genres' => sub {
 		. '(SELECT tracks.album FROM tracks JOIN genre_track ON genre_track.track = tracks.id JOIN genres ON genres.id = genre_track.genre WHERE genres.name = ?)',
 		undef, $genre->[0])->[0];
 	is($outside, 0, 'none outside the genre');
+};
+
+subtest 'genres excluded' => sub {
+	my ($genre) = sort { $b->[1] <=> $a->[1] } @{ Plugins::RediscoverReleases::List::genres() };
+	my $withGenre = $dbh->selectcol_arrayref('SELECT DISTINCT tracks.album FROM tracks JOIN genre_track ON genre_track.track = tracks.id'
+		. ' JOIN genres ON genres.id = genre_track.genre WHERE genres.name = ? AND tracks.audio = 1', undef, $genre->[0]);
+	my %withGenre = map { $_ => 1 } @$withGenre;
+	setPrefs(genres => [ $genre->[0] ], genreFilter => 'exclude');
+	my $stats = stats();
+	is(scalar keys %$stats, $albums - scalar(grep { $all->{$_} } @$withGenre), "all albums except the $genre->[1] of '$genre->[0]'");
+	is(scalar(grep { $withGenre{$_} } keys %$stats), 0, 'none with a track of the genre');
+	my $list = build(genres => [ $genre->[0] ], genreFilter => 'exclude', count => 1000);
+	is(scalar(grep { $withGenre{$_} } @$list), 0, 'list has none of them');
+	setPrefs(genres => [ $genre->[0] ], genreFilter => 'all');
+	is(scalar keys %{ stats() }, $albums, "'all' ignores the selection");
+	setPrefs(genres => [ $genre->[0] ]);   # saved before 1.1: no genreFilter
+	is(scalar keys %{ stats() }, $genre->[1], 'without genreFilter a selection includes');
+};
+
+subtest 'Library View' => sub {
+	my $views = $dbh->selectall_arrayref('SELECT library, COUNT(*) FROM library_track GROUP BY library ORDER BY COUNT(*)');
+	plan skip_all => 'no Library Views' unless @$views;
+	# a view with some albums only partly in it
+	my ($view) = grep {
+		$dbh->selectrow_array('SELECT COUNT(DISTINCT t.album) FROM tracks t JOIN library_track lt ON lt.track = t.id AND lt.library = ?'
+			. ' WHERE t.album IN (SELECT t2.album FROM tracks t2 LEFT JOIN library_track l2 ON l2.track = t2.id AND l2.library = ?'
+			. ' WHERE t2.audio = 1 AND l2.track IS NULL)', undef, $_->[0], $_->[0])
+	} @$views;
+	plan skip_all => 'no view with partly included albums' unless $view;
+	my $id = $view->[0];
+	my $any = $dbh->selectcol_arrayref('SELECT DISTINCT t.album FROM tracks t JOIN library_track lt ON lt.track = t.id WHERE lt.library = ? AND t.audio = 1', undef, $id);
+	my $partly = $dbh->selectcol_arrayref('SELECT DISTINCT t.album FROM tracks t LEFT JOIN library_track lt ON lt.track = t.id AND lt.library = ?'
+		. ' WHERE t.audio = 1 AND lt.track IS NULL', undef, $id);
+	my %partly = map { $_ => 1 } @$partly;
+	my @all = grep { !$partly{$_} } @$any;
+	diag(sprintf('view %s: %d albums with any track, %d with all tracks', $id, scalar @$any, scalar @all));
+
+	setPrefs(libraryId => $id);
+	is_deeply([ sort { $a <=> $b } keys %{ stats() } ], [ sort { $a <=> $b } @$any ], 'any: albums with a track in the view');
+	setPrefs(libraryId => $id, libraryMatch => 'all');
+	is_deeply([ sort { $a <=> $b } keys %{ stats() } ], [ sort { $a <=> $b } @all ], 'all: albums with all tracks in the view');
+	my $album = (grep { $partly{$_} } @$any)[0];
+	is(stats()->{$album}, undef, "album $album, partly in the view, left out with 'all'");
+
+	setPrefs(libraryId => 'nosuchview');
+	is(scalar keys %{ stats() }, $albums, 'a view that is gone is ignored');
+	ok(scalar(grep { /nosuchview/ } @main::warnings), 'and logged');
+	@main::warnings = ();
+
+	setPrefs(list => [ @$any[0..2], @$partly[0..2] ]);
+	my %partlyOrNot = map { $_ => 1 } @$any;
+	is(scalar @{ Plugins::RediscoverReleases::List::inLibrary($TestPrefs::values{list}, $id) },
+		scalar(grep { $partlyOrNot{$_} } @{ $TestPrefs::values{list} }), 'inLibrary keeps the albums with a track in the view');
+	is(scalar @{ Plugins::RediscoverReleases::List::inLibrary($TestPrefs::values{list}, '') }, 6, 'no view: all');
+};
+
+subtest 'minimum rating' => sub {
+	setPrefs();
+	my $rows = { map { $_->[0] => $_ } @{ Plugins::RediscoverReleases::List::albumStats() } };
+	my @rated = grep { $rows->{$_}->[4] } keys %$rows;
+	plan skip_all => 'no rated tracks' unless @rated;
+	# The average counts rated tracks only
+	my ($mixed) = grep { $rows->{$_}->[4] < $rows->{$_}->[1] } @rated;
+	if ($mixed) {
+		my $avg = $dbh->selectrow_array('SELECT AVG(tp.rating) FROM tracks t JOIN tracks_persistent tp ON tp.urlmd5 = t.urlmd5'
+			. ' WHERE t.album = ? AND t.audio = 1 AND tp.rating > 0', undef, $mixed);
+		is($rows->{$mixed}->[5], $avg, "album $mixed: average of its $rows->{$mixed}->[4] rated of $rows->{$mixed}->[1] tracks");
+	}
+	my $min = 80;
+	my @good = grep { $rows->{$_}->[5] >= $min } @rated;
+	diag(sprintf('%d albums with rated tracks, %d averaging 4 stars or more', scalar @rated, scalar @good));
+
+	my $list = build(minRating => $min, includeUnrated => 0, count => 1000, minPlayedPct => 0);
+	is_deeply([ sort { $a <=> $b } @$list ], [ sort { $a <=> $b } @good[0 .. (@good > 1000 ? 999 : $#good)] ], 'only albums averaging 4 stars');
+	is($TestPrefs::values{stats}->{belowRating}, $albums - @good, 'the others counted as left out');
+
+	$list = build(minRating => $min, includeUnrated => 1, count => 1000, minPlayedPct => 0);
+	my %low = map { $_ => 1 } grep { $rows->{$_}->[5] < $min } @rated;
+	is(scalar(grep { $low{$_} } @$list), 0, 'with unrated: still none below 4 stars');
+	ok(scalar(grep { !$rows->{$_}->[4] } @$list) > 0, 'but unrated albums');
+};
+
+subtest "Don't Stop The Music" => sub {
+	build(count => 20);
+	my @list = @{ $TestPrefs::values{list} };
+	my $urls = Plugins::RediscoverReleases::List::mixTracks(2, {});
+	my $albumsOf = sub {
+		my %a;
+		foreach my $url (@{ shift() }) {
+			$a{ $dbh->selectrow_array('SELECT album FROM tracks WHERE url = ?', undef, $url) } = 1;
+		}
+		return [ keys %a ];
+	};
+	my $picked = $albumsOf->($urls);
+	is(scalar @$picked, 2, 'two albums');
+	my %listed = map { $_ => 1 } @list;
+	is(scalar(grep { $listed{$_} } @$picked), 2, 'from the list');
+	my $expected = $dbh->selectrow_array('SELECT COUNT(*) FROM tracks WHERE audio = 1 AND album IN (' . join(',', @$picked) . ')');
+	is(scalar @$urls, $expected, 'all their tracks');
+
+	my $album = $picked->[0];
+	my $order = $dbh->selectcol_arrayref('SELECT url FROM tracks WHERE album = ? AND audio = 1 ORDER BY COALESCE(disc,0), COALESCE(tracknum,0), titlesort', undef, $album);
+	my @inMix = grep { my $u = $_; grep { $_ eq $u } @$order } @$urls;
+	is_deeply(\@inMix, $order, 'in disc and track order');
+
+	my %skip = map { $_ => 1 } @list[0..17];
+	my $rest = $albumsOf->(Plugins::RediscoverReleases::List::mixTracks(5, \%skip));
+	is_deeply([ sort @$rest ], [ sort @list[18, 19] ], 'albums in the queue are skipped');
+	is(scalar @{ Plugins::RediscoverReleases::List::mixTracks(3, { map { $_ => 1 } @list }) }, 0, 'nothing left: no tracks');
 };
 
 subtest 'played in full is removed' => sub {

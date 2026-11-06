@@ -4,10 +4,10 @@ PLUGIN_REDISCOVER_RELEASES
 	EN	Rediscover Releases
 
 PLUGIN_REDISCOVER_RELEASES_DESC
-	EN	A Material skin home row of random releases that prefers albums with no recent plays.
+	EN	A list of random releases that prefers albums with no recent plays: a Material skin home row, a My Music browse entry and a Don't Stop The Music mix.
 
 PLUGIN_REDISCOVER_RELEASES_ABOUT
-	EN	This plugin provides a list of random releases that follow a well-defined criteria: it prioritizes albums with no recent playbacks, supports restricting the genre list, lets you choose how often the list is regenerated, and offers deep configuration. It only supports the Material skin. The list persists for a configurable number of hours; releases on it that get played in full are removed until the next regeneration.<br><br>After adding this plugin, enable the new <b>Rediscover Releases</b> row in Material's <i>Settings &gt; Interface</i> (home screen rows) and set the desired position. You can then save that setup as the default for all Material clients and apps.
+	EN	This plugin provides a list of random releases that follow a well-defined criteria: it prioritizes albums with no recent playbacks, supports restricting the genre list, lets you choose how often the list is regenerated, and offers deep configuration. The home row needs the Material skin. The list persists for a configurable number of hours; releases on it that get played in full are removed until the next regeneration.<br><br>After adding this plugin, enable the new <b>Rediscover Releases</b> row in Material's <i>Settings &gt; Interface</i> (home screen rows) and set the desired position. You can then save that setup as the default for all Material clients and apps.<br><br>The list is also an entry in <i>My Music</i>: in Material, enable it under <i>Settings &gt; Browse modes</i>. With a Library View selected on the player, that entry shows only the albums in it. And <i>Don't Stop The Music</i> can use it (<i>Rediscover Releases</i> in the player's Don't Stop The Music settings) to add albums from the list when the queue runs out.
 
 PLUGIN_REDISCOVER_RELEASES_STATUS
 	EN	Current list
@@ -17,6 +17,9 @@ PLUGIN_REDISCOVER_RELEASES_STATUS_LIST
 
 PLUGIN_REDISCOVER_RELEASES_STATUS_POOLS
 	EN	At the last build the library had %s played releases not played within the period, %s played within it and %s unplayed; the list got %s unplayed ones.
+
+PLUGIN_REDISCOVER_RELEASES_STATUS_RATING
+	EN	%s releases were left out by the rating filter.
 
 PLUGIN_REDISCOVER_RELEASES_STATUS_NONE
 	EN	No list yet. It is built a minute after the server starts (or after a library scan finishes).
@@ -55,13 +58,58 @@ PLUGIN_REDISCOVER_RELEASES_MINPLAYED_DESC
 	EN	0 to 100 %. The rest of the list is picked at random from played (not recently) and unplayed releases together.
 
 PLUGIN_REDISCOVER_RELEASES_GENRES
-	EN	Include the selected genres
+	EN	Genres
 
 PLUGIN_REDISCOVER_RELEASES_GENRES_DESC
-	EN	A release is included if any of its tracks has one of the selected genres. The number after each genre is its number of releases.
+	EN	Only the selected genres: a release is included if any of its tracks has one of them. All except the selected genres: a release is left out if any of its tracks has one of them. The number after each genre is its number of releases.
 
 PLUGIN_REDISCOVER_RELEASES_ALL_GENRES
 	EN	All genres
+
+PLUGIN_REDISCOVER_RELEASES_GENRES_INCLUDE
+	EN	Only the selected genres
+
+PLUGIN_REDISCOVER_RELEASES_GENRES_EXCLUDE
+	EN	All except the selected genres
+
+PLUGIN_REDISCOVER_RELEASES_SELECT_ALL
+	EN	Select all
+
+PLUGIN_REDISCOVER_RELEASES_SELECT_NONE
+	EN	Select none
+
+PLUGIN_REDISCOVER_RELEASES_LIBRARY
+	EN	Only releases in this Library View
+
+PLUGIN_REDISCOVER_RELEASES_LIBRARY_DESC
+	EN	Library Views are made of tracks: choose whether a release counts as in the view when any of its tracks is in it, or only when all of them are.
+
+PLUGIN_REDISCOVER_RELEASES_LIBRARY_NONE
+	EN	Whole library
+
+PLUGIN_REDISCOVER_RELEASES_LIBRARY_MISSING
+	EN	(Library View no longer exists: not used)
+
+PLUGIN_REDISCOVER_RELEASES_LIBRARY_ANY
+	EN	with any of its tracks in it
+
+PLUGIN_REDISCOVER_RELEASES_LIBRARY_ALL
+	EN	with all of its tracks in it
+
+PLUGIN_REDISCOVER_RELEASES_RATING
+	EN	Minimum average rating
+
+PLUGIN_REDISCOVER_RELEASES_RATING_DESC
+	EN	The average of the release's rated tracks (unrated tracks don't count). Ratings set with LMS or the Ratings Light plugin.
+
+PLUGIN_REDISCOVER_RELEASES_RATING_OFF
+	EN	Any rating
+
+PLUGIN_REDISCOVER_RELEASES_RATING_STARS
+	EN	%s ★
+
+PLUGIN_REDISCOVER_RELEASES_UNRATED
+	EN	Include releases without rated tracks
 
 PLUGIN_REDISCOVER_RELEASES_PARTIAL
 	EN	Partially played releases are assumed as
@@ -87,3 +135,14 @@ PLUGIN_REDISCOVER_RELEASES_HOURS_UNIT
 PLUGIN_REDISCOVER_RELEASES_EMPTY
 	EN	The Rediscover list is empty.
 
+PLUGIN_REDISCOVER_RELEASES_DSTM
+	EN	Rediscover Releases
+
+PLUGIN_REDISCOVER_RELEASES_DSTM_ALBUMS
+	EN	Don't Stop The Music adds
+
+PLUGIN_REDISCOVER_RELEASES_DSTM_ALBUMS_DESC
+	EN	1 to 10 random releases from the list at a time, when Rediscover Releases is chosen in the player's Don't Stop The Music settings. Releases already in the queue are skipped, and with a Library View selected on the player only releases in it are used.
+
+PLUGIN_REDISCOVER_RELEASES_DSTM_ALBUMS_UNIT
+	EN	releases at a time

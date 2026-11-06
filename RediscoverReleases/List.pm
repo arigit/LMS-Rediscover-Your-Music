@@ -9,6 +9,11 @@ package Plugins::RediscoverReleases::List;
 #  - some tracks played: as the partialAs setting says; as "played", last played = the oldest last play of its
 #    played tracks.
 #
+# Filters (all optional): genres (albums with any track of the selected genres, or all albums except those with any
+# track of them), a Library View (albums with any, or all, of their tracks in it), and a minimum average rating
+# (over the album's rated tracks; albums without rated tracks per includeUnrated). Play state always uses all of an
+# album's tracks.
+#
 # Selection (count N, months M, minimum played share P%):
 #  1. "old" = played albums not played in the last M months; "recent" = played within M months; "unplayed".
 #  2. At least ceil(N * P / 100) albums come from "old" (topped up from "recent", least recently played first,
@@ -121,10 +126,18 @@ sub _select {
 	my $partialAs = $prefs->get('partialAs') || 'unplayed';
 	my $cutoff    = _monthsAgo($months);
 
+	my $minRating      = $prefs->get('minRating') || 0;
+	my $includeUnrated = $prefs->get('includeUnrated');
+
 	my $stats = albumStats();
 	my (@old, @recent, @unplayed);
+	my $belowRating = 0;
 	foreach my $album (@$stats) {
-		my ($id, $tracks, $played, $oldest) = @$album;
+		my ($id, $tracks, $played, $oldest, $rated, $rating) = @$album;
+		if ($minRating && ($rated ? $rating < $minRating : !$includeUnrated)) {
+			$belowRating++;
+			next;
+		}
 		if (!$played || ($played < $tracks && $partialAs ne 'played')) {
 			push @unplayed, $id;
 		} elsif (defined $oldest && $oldest < $cutoff) {
@@ -133,7 +146,7 @@ sub _select {
 			push @recent, [$id, $oldest || 0];
 		}
 	}
-	my %stats = (old => scalar @old, recent => scalar @recent, unplayed => scalar @unplayed);
+	my %stats = (old => scalar @old, recent => scalar @recent, unplayed => scalar @unplayed, belowRating => $belowRating);
 	# least recently played first
 	my @recentIds = map { $_->[0] } sort { $a->[1] <=> $b->[1] } @recent;
 	@old = shuffle(@old);
@@ -166,31 +179,116 @@ sub _monthsAgo {
 	return POSIX::mktime(@t[0..5]) || (time() - $months * 30 * 86400);
 }
 
-# [album ID, tracks, played tracks, oldest last play of the played tracks] for every album in the genre filter.
+# [album ID, tracks, played tracks, oldest last play of the played tracks, rated tracks, average rating of the rated
+# tracks (0-100)] for every album that passes the genre and Library View filters.
 sub albumStats {
 	my $dbh = Slim::Schema->dbh;
 	my @genres = @{ $prefs->get('genres') || [] };
+	my $genreFilter = genreFilter();
+	my ($libraryId, $libraryMatch) = libraryFilter();
 
 	my $sql = q{
 		SELECT tracks.album,
 		       COUNT(*),
 		       SUM(CASE WHEN tracks_persistent.playcount > 0 THEN 1 ELSE 0 END),
-		       MIN(CASE WHEN tracks_persistent.playcount > 0 THEN tracks_persistent.lastplayed END)
+		       MIN(CASE WHEN tracks_persistent.playcount > 0 THEN tracks_persistent.lastplayed END),
+		       SUM(CASE WHEN tracks_persistent.rating > 0 THEN 1 ELSE 0 END),
+		       AVG(CASE WHEN tracks_persistent.rating > 0 THEN tracks_persistent.rating END)
 		FROM tracks
 		LEFT JOIN tracks_persistent ON tracks_persistent.urlmd5 = tracks.urlmd5
 		WHERE tracks.audio = 1 AND tracks.album IS NOT NULL
 	};
-	if (@genres) {
-		$sql .= ' AND tracks.album IN (SELECT DISTINCT t2.album FROM tracks t2'
+	my @bind;
+	if ($genreFilter ne 'all' && @genres) {
+		$sql .= ' AND tracks.album ' . ($genreFilter eq 'exclude' ? 'NOT IN' : 'IN')
+		      . ' (SELECT DISTINCT t2.album FROM tracks t2'
 		      . ' JOIN genre_track ON genre_track.track = t2.id'
 		      . ' JOIN genres ON genres.id = genre_track.genre'
-		      . ' WHERE genres.name IN (' . join(',', map { '?' } @genres) . '))';
+		      . ' WHERE t2.album IS NOT NULL AND genres.name IN (' . join(',', map { '?' } @genres) . '))';
+		# The database holds UTF-8 bytes (LMS's own queries decode and encode like this too).
+		push @bind, map { my $g = $_; utf8::encode($g) if utf8::is_utf8($g); $g } @genres;
+	}
+	if ($libraryId) {
+		$sql .= ' AND tracks.album IN (SELECT t3.album FROM tracks t3 JOIN library_track lt3 ON lt3.track = t3.id'
+		      . ' WHERE lt3.library = ? AND t3.album IS NOT NULL)';
+		push @bind, $libraryId;
+		if ($libraryMatch eq 'all') {
+			$sql .= ' AND tracks.album NOT IN (SELECT t4.album FROM tracks t4'
+			      . ' LEFT JOIN library_track lt4 ON lt4.track = t4.id AND lt4.library = ?'
+			      . ' WHERE t4.audio = 1 AND t4.album IS NOT NULL AND lt4.track IS NULL)';
+			push @bind, $libraryId;
+		}
 	}
 	$sql .= ' GROUP BY tracks.album';
 
-	# The database holds UTF-8 bytes (LMS's own queries decode and encode like this too).
-	my @bind = map { my $g = $_; utf8::encode($g) if utf8::is_utf8($g); $g } @genres;
 	return $dbh->selectall_arrayref($sql, undef, @bind) || [];
+}
+
+# 'all', 'include' or 'exclude' (the selected genres). Before 1.1 there was no mode: genres set = include.
+sub genreFilter {
+	my $filter = $prefs->get('genreFilter');
+	return $filter if $filter && $filter =~ /^(?:all|include|exclude)$/;
+	return @{ $prefs->get('genres') || [] } ? 'include' : 'all';
+}
+
+# (Library View ID, 'any' or 'all'), or () without one. A view that no longer exists is ignored (logged).
+sub libraryFilter {
+	my $id = $prefs->get('libraryId');
+	return () unless $id;
+	if (!libraryExists($id)) {
+		$log->warn("Library View $id not found: not filtering by it");
+		return ();
+	}
+	return ($id, ($prefs->get('libraryMatch') || 'any') eq 'all' ? 'all' : 'any');
+}
+
+sub libraryExists {
+	my $id = shift;
+	my $libraries = Slim::Music::VirtualLibraries->getLibraries() || {};
+	return 1 if $libraries->{$id};
+	# also the tables, for the tests and while the views are being built
+	return Slim::Schema->dbh->selectrow_array('SELECT 1 FROM library_track WHERE library = ? LIMIT 1', undef, $id) ? 1 : 0;
+}
+
+# The listed album IDs that have a track in this Library View (all of them without one).
+sub inLibrary {
+	my ($ids, $libraryId) = @_;
+	return $ids unless $libraryId && $libraryId ne '-1' && $libraryId ne '0' && @$ids;
+	my $dbh = Slim::Schema->dbh;
+	my %in;
+	for (my $i = 0; $i < @$ids; $i += CHUNK) {
+		my @chunk = @$ids[$i .. min($i + CHUNK, scalar @$ids) - 1];
+		my $rows = $dbh->selectcol_arrayref('SELECT DISTINCT tracks.album FROM tracks JOIN library_track ON library_track.track = tracks.id'
+			. ' WHERE library_track.library = ? AND tracks.album IN (' . join(',', map { '?' } @chunk) . ')', undef, $libraryId, @chunk);
+		$in{$_} = 1 for @$rows;
+	}
+	return [ grep { $in{$_} } @$ids ];
+}
+
+# For Don't Stop The Music: the track URLs of up to $count random listed albums (each in disc and track order),
+# skipping albums in %$skip (e.g. those already in the queue) and, with a Library View ID, albums outside it.
+sub mixTracks {
+	my ($count, $skip, $libraryId) = @_;
+	cleanup();
+	my @candidates = grep { !$skip->{$_} } @{ inLibrary($prefs->get('list') || [], $libraryId) };
+	my @albums = (shuffle(@candidates))[0 .. min($count, scalar @candidates) - 1];
+	my $dbh = Slim::Schema->dbh;
+	my $sth = $dbh->prepare_cached(q{
+		SELECT url FROM tracks WHERE album = ? AND audio = 1
+		ORDER BY COALESCE(disc, 0), COALESCE(tracknum, 0), titlesort
+	});
+	my @urls;
+	foreach my $album (@albums) {
+		push @urls, @{ $dbh->selectcol_arrayref($sth, undef, $album) || [] };
+	}
+	main::INFOLOG && $log->is_info && $log->info('Don\'t Stop The Music: albums ' . join(',', @albums) . ', ' . scalar(@urls) . ' tracks');
+	return \@urls;
+}
+
+# Library Views for the settings page: [[id, name], ...] by name.
+sub libraries {
+	my $libraries = Slim::Music::VirtualLibraries->getLibraries() || {};
+	return [ sort { lc($a->[1]) cmp lc($b->[1]) } map { [ $_, $libraries->{$_}->{name} || $_ ] } keys %$libraries ];
 }
 
 # Library genres for the settings page: [[name, albums], ...] by name.
@@ -302,10 +400,12 @@ sub albums {
 	return [ grep { $_ } map { $byId{$_} } @list ];
 }
 
-# Title, artist, year, artwork and favourites URL of the listed albums, in list order (for the home row).
+# Title, artist, year, artwork and favourites URL of the listed albums, in list order (for the home row and the
+# browse menu); with a Library View ID only the albums with a track in it.
 sub albumDetails {
+	my $libraryId = shift;
 	cleanup();
-	my @list = @{ $prefs->get('list') || [] };
+	my @list = @{ inLibrary($prefs->get('list') || [], $libraryId) };
 	return [] unless @list;
 
 	my $dbh = Slim::Schema->dbh;

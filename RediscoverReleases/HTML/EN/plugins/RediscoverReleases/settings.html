@@ -9,6 +9,7 @@
 	[% IF builtAt %]
 		[% 'PLUGIN_REDISCOVER_RELEASES_STATUS_LIST' | string(listCount, builtAt, nextAt) %]
 		[% IF stats.chosen.defined %]<br>[% 'PLUGIN_REDISCOVER_RELEASES_STATUS_POOLS' | string(stats.old, stats.recent, stats.unplayed, stats.chosenUnplayed) %][% END %]
+		[% IF stats.belowRating %]<br>[% 'PLUGIN_REDISCOVER_RELEASES_STATUS_RATING' | string(stats.belowRating) %][% END %]
 	[% ELSE %]
 		[% 'PLUGIN_REDISCOVER_RELEASES_STATUS_NONE' | string %]
 	[% END %]
@@ -36,15 +37,50 @@
 [% END %]
 
 [% WRAPPER setting title="PLUGIN_REDISCOVER_RELEASES_GENRES" desc="PLUGIN_REDISCOVER_RELEASES_GENRES_DESC" %]
-	<input type="checkbox" name="allGenres" id="allGenres" value="1" [% IF allGenres %]checked="checked"[% END %]
-		onclick="document.getElementById('rediscoverGenres').style.display = this.checked ? 'none' : 'block'">
-	<label for="allGenres">[% 'PLUGIN_REDISCOVER_RELEASES_ALL_GENRES' | string %]</label>
-	<div id="rediscoverGenres" style="display:[% IF allGenres %]none[% ELSE %]block[% END %]; max-height:20em; overflow-y:auto; margin-top:0.5em; padding:0.25em 0.5em; border:1px solid rgba(128,128,128,0.4)">
-	[% FOREACH genre = genreList %]
-		<input type="checkbox" name="genre_[% genre.id %]" id="genre_[% genre.id %]" value="[% genre.name | html %]" [% IF genre.selected %]checked="checked"[% END %]>
-		<label for="genre_[% genre.id %]">[% genre.name | html %] ([% genre.albums %])</label><br>
-	[% END %]
+	<select name="pref_genreFilter" id="pref_genreFilter" class="stdedit"
+		onchange="document.getElementById('rediscoverGenres').style.display = this.value == 'all' ? 'none' : 'block'">
+		<option value="all" [% IF genreFilter == 'all' %]selected[% END %]>[% 'PLUGIN_REDISCOVER_RELEASES_ALL_GENRES' | string %]</option>
+		<option value="include" [% IF genreFilter == 'include' %]selected[% END %]>[% 'PLUGIN_REDISCOVER_RELEASES_GENRES_INCLUDE' | string %]</option>
+		<option value="exclude" [% IF genreFilter == 'exclude' %]selected[% END %]>[% 'PLUGIN_REDISCOVER_RELEASES_GENRES_EXCLUDE' | string %]</option>
+	</select>
+	<div id="rediscoverGenres" style="display:[% IF genreFilter == 'all' %]none[% ELSE %]block[% END %]; margin-top:0.5em">
+		<input type="button" class="stdclick" value="[% 'PLUGIN_REDISCOVER_RELEASES_SELECT_ALL' | string %]"
+			onclick="document.querySelectorAll('#rediscoverGenreList input[type=checkbox]').forEach(function(c) { c.checked = true; })">
+		<input type="button" class="stdclick" value="[% 'PLUGIN_REDISCOVER_RELEASES_SELECT_NONE' | string %]"
+			onclick="document.querySelectorAll('#rediscoverGenreList input[type=checkbox]').forEach(function(c) { c.checked = false; })">
+		<div id="rediscoverGenreList" style="max-height:20em; overflow-y:auto; margin-top:0.5em; padding:0.25em 0.5em; border:1px solid rgba(128,128,128,0.4)">
+		[% FOREACH genre = genreList %]
+			<input type="checkbox" name="genre_[% genre.id %]" id="genre_[% genre.id %]" value="[% genre.name | html %]" [% IF genre.selected %]checked="checked"[% END %]>
+			<label for="genre_[% genre.id %]">[% genre.name | html %] ([% genre.albums %])</label><br>
+		[% END %]
+		</div>
 	</div>
+[% END %]
+
+[% WRAPPER setting title="PLUGIN_REDISCOVER_RELEASES_LIBRARY" desc="PLUGIN_REDISCOVER_RELEASES_LIBRARY_DESC" %]
+	<select name="pref_libraryId" class="stdedit">
+		<option value="" [% IF !prefs.pref_libraryId %]selected[% END %]>[% 'PLUGIN_REDISCOVER_RELEASES_LIBRARY_NONE' | string %]</option>
+		[% FOREACH library = libraryList %]
+		<option value="[% library.0 | html %]" [% IF prefs.pref_libraryId == library.0 %]selected[% END %]>[% library.1 | html %]</option>
+		[% END %]
+		[% IF libraryMissing %]<option value="[% libraryMissing | html %]" selected>[% IF libraryGone %][% 'PLUGIN_REDISCOVER_RELEASES_LIBRARY_MISSING' | string %][% ELSE %][% libraryMissing | html %][% END %]</option>[% END %]
+	</select>
+	<select name="pref_libraryMatch" class="stdedit">
+		<option value="any" [% IF prefs.pref_libraryMatch != 'all' %]selected[% END %]>[% 'PLUGIN_REDISCOVER_RELEASES_LIBRARY_ANY' | string %]</option>
+		<option value="all" [% IF prefs.pref_libraryMatch == 'all' %]selected[% END %]>[% 'PLUGIN_REDISCOVER_RELEASES_LIBRARY_ALL' | string %]</option>
+	</select>
+[% END %]
+
+[% WRAPPER setting title="PLUGIN_REDISCOVER_RELEASES_RATING" desc="PLUGIN_REDISCOVER_RELEASES_RATING_DESC" %]
+	<select name="pref_minRating" class="stdedit">
+		<option value="0" [% IF !prefs.pref_minRating %]selected[% END %]>[% 'PLUGIN_REDISCOVER_RELEASES_RATING_OFF' | string %]</option>
+		[% FOREACH r = ratingChoices %]
+		<option value="[% r.value %]" [% IF prefs.pref_minRating == r.value %]selected[% END %]>[% 'PLUGIN_REDISCOVER_RELEASES_RATING_STARS' | string(r.stars) %]</option>
+		[% END %]
+	</select>
+	<br>
+	<input type="checkbox" name="pref_includeUnrated" id="pref_includeUnrated" value="1" [% IF prefs.pref_includeUnrated %]checked="checked"[% END %]>
+	<label for="pref_includeUnrated">[% 'PLUGIN_REDISCOVER_RELEASES_UNRATED' | string %]</label>
 [% END %]
 
 [% WRAPPER setting title="PLUGIN_REDISCOVER_RELEASES_PARTIAL" desc="PLUGIN_REDISCOVER_RELEASES_PARTIAL_DESC" %]
@@ -57,6 +93,11 @@
 [% WRAPPER setting title="PLUGIN_REDISCOVER_RELEASES_HOURS" desc="PLUGIN_REDISCOVER_RELEASES_HOURS_DESC" %]
 	<input type="number" name="pref_rebuildHours" value="[% prefs.pref_rebuildHours %]" min="1" max="999" class="stdedit" style="width:6em">
 	[% 'PLUGIN_REDISCOVER_RELEASES_HOURS_UNIT' | string %]
+[% END %]
+
+[% WRAPPER setting title="PLUGIN_REDISCOVER_RELEASES_DSTM_ALBUMS" desc="PLUGIN_REDISCOVER_RELEASES_DSTM_ALBUMS_DESC" %]
+	<input type="number" name="pref_dstmAlbums" value="[% prefs.pref_dstmAlbums %]" min="1" max="10" class="stdedit" style="width:6em">
+	[% 'PLUGIN_REDISCOVER_RELEASES_DSTM_ALBUMS_UNIT' | string %]
 [% END %]
 
 [% PROCESS settings/footer.html %]

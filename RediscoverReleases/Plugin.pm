@@ -2,7 +2,8 @@ package Plugins::RediscoverReleases::Plugin;
 
 # Rediscover Releases: a list of random releases from the local library that prefers albums without recent plays.
 # The list is built every few hours (not on every request) and kept in the prefs, so it stays the same between
-# rebuilds and across server restarts. It is shown as a Material skin home row (HomeExtras.pm) and can be read by
+# rebuilds and across server restarts. It is shown as a Material skin home row (HomeExtras.pm), as an entry in the
+# "My Music" browse menu (also one of Material's browse modes), can feed Don't Stop The Music, and can be read by
 # other clients with the "rediscoverreleases" CLI query (see README.md).
 
 use strict;
@@ -27,7 +28,7 @@ my $log = Slim::Utils::Log->addLogCategory({
 my $prefs = preferences('plugin.rediscoverreleases');
 
 # Prefs that change which albums are chosen: a change rebuilds the list.
-my @LIST_PREFS = qw(count months includeUnplayed minPlayedPct genres partialAs);
+my @LIST_PREFS = qw(count months includeUnplayed minPlayedPct genres genreFilter libraryId libraryMatch minRating includeUnrated partialAs);
 
 sub initPlugin {
 	my $class = shift;
@@ -37,9 +38,16 @@ sub initPlugin {
 		months          => 12,
 		includeUnplayed => 1,
 		minPlayedPct    => 20,
-		genres          => [],          # genre names; empty = all genres
+		genres          => [],          # genre names, for genreFilter
+		# 'all', 'include' or 'exclude' the selected genres (before 1.1: genres set = include)
+		genreFilter     => (@{ $prefs->get('genres') || [] } ? 'include' : 'all'),
+		libraryId       => '',          # Library View; '' = none
+		libraryMatch    => 'any',       # an album counts as in the view with 'any' or 'all' of its tracks in it
+		minRating       => 0,           # minimum average rating of the rated tracks (0-100, 20 = 1 star); 0 = off
+		includeUnrated  => 1,           # with minRating: albums without rated tracks
 		partialAs       => 'unplayed',  # 'unplayed' or 'played'
 		rebuildHours    => 24,
+		dstmAlbums      => 1,           # albums added at a time by Don't Stop The Music
 		# state, not settings
 		list            => [],          # album IDs, in display order
 		builtAt         => 0,
@@ -50,7 +58,12 @@ sub initPlugin {
 	$prefs->setValidate({ validator => 'intlimit', low => 1,  high => 99   }, 'months');
 	$prefs->setValidate({ validator => 'intlimit', low => 0,  high => 100  }, 'minPlayedPct');
 	$prefs->setValidate({ validator => 'intlimit', low => 1,  high => 999  }, 'rebuildHours');
+	$prefs->setValidate({ validator => 'intlimit', low => 0,  high => 100  }, 'minRating');
+	$prefs->setValidate({ validator => 'intlimit', low => 1,  high => 10   }, 'dstmAlbums');
 	$prefs->setValidate({ validator => sub { $_[1] && ($_[1] eq 'unplayed' || $_[1] eq 'played') } }, 'partialAs');
+	$prefs->setValidate({ validator => sub { $_[1] && $_[1] =~ /^(?:all|include|exclude)$/ } }, 'genreFilter');
+	$prefs->setValidate({ validator => sub { $_[1] && $_[1] =~ /^(?:any|all)$/ } }, 'libraryMatch');
+	$prefs->setValidate({ validator => sub { !defined $_[1] || $_[1] =~ /^[A-Za-z0-9_-]*$/ } }, 'libraryId');
 
 	# Saving the settings page sets every pref at once: rebuild once, shortly after.
 	$prefs->setChange(sub {
@@ -77,6 +90,9 @@ sub initPlugin {
 
 	Plugins::RediscoverReleases::List::init();
 
+	require Plugins::RediscoverReleases::Browse;
+	Plugins::RediscoverReleases::Browse::init();
+
 	$class->SUPER::initPlugin(@_);
 }
 
@@ -90,9 +106,29 @@ sub postinitPlugin {
 	} else {
 		$log->warn('Material skin not found (or too old): the Rediscover Releases row needs it');
 	}
+
+	if (Slim::Utils::PluginManager->isEnabled('Slim::Plugin::DontStopTheMusic::Plugin')) {
+		require Slim::Plugin::DontStopTheMusic::Plugin;
+		Slim::Plugin::DontStopTheMusic::Plugin->registerHandler('PLUGIN_REDISCOVER_RELEASES_DSTM', \&_dontStopTheMusic);
+	}
+}
+
+# Don't Stop The Music: tracks of random albums from the list that aren't in the queue yet, from the player's
+# Library View if it has one.
+sub _dontStopTheMusic {
+	my ($client, $cb) = @_;
+	my %inQueue;
+	foreach my $track (@{ Slim::Player::Playlist::playList($client) || [] }) {
+		$inQueue{$track->albumid} = 1 if blessed($track) && $track->can('albumid') && $track->albumid;
+	}
+	my $libraryId = Slim::Music::VirtualLibraries->getLibraryIdForClient($client);
+	$cb->($client, Plugins::RediscoverReleases::List::mixTracks($prefs->get('dstmAlbums') || 1, \%inQueue, $libraryId));
 }
 
 sub shutdownPlugin {
+	if (Slim::Plugin::DontStopTheMusic::Plugin->can('unregisterHandler')) {
+		Slim::Plugin::DontStopTheMusic::Plugin->unregisterHandler('PLUGIN_REDISCOVER_RELEASES_DSTM');
+	}
 	Slim::Control::Request::unsubscribe(\&_onNewSong);
 	Slim::Control::Request::unsubscribe(\&_onRescanDone);
 }

@@ -18,18 +18,22 @@ sub name { Slim::Web::HTTP::CSRF->protectName('PLUGIN_REDISCOVER_RELEASES') }
 sub page { Slim::Web::HTTP::CSRF->protectURI('plugins/RediscoverReleases/settings.html') }
 
 sub prefs {
-	return ($prefs, qw(count months includeUnplayed minPlayedPct partialAs rebuildHours));
+	return ($prefs, qw(count months includeUnplayed minPlayedPct genreFilter libraryId libraryMatch minRating includeUnrated
+		partialAs rebuildHours dstmAlbums));
 }
 
 sub handler {
 	my ($class, $client, $params) = @_;
 
 	if ($params->{saveSettings}) {
-		# Genres: "all" checkbox, or one checkbox per genre (genre_<n>, value = name).
-		my @genres;
-		unless ($params->{allGenres}) {
-			@genres = sort map { $params->{$_} } grep { /^genre_\d+$/ } keys %$params;
+		# An unticked checkbox posts nothing, which LMS saves as undef; the plugin's defaults (on) would then turn
+		# it back on at the next server start. Save 0 instead.
+		foreach my $pref (qw(includeUnplayed includeUnrated)) {
+			$params->{"pref_$pref"} = 0 unless $params->{"pref_$pref"};
 		}
+
+		# One checkbox per genre (genre_<n>, value = name). Kept with "All genres" too, for switching back.
+		my @genres = sort map { $params->{$_} } grep { /^genre_\d+$/ } keys %$params;
 		my $old = join("\x00", sort @{ $prefs->get('genres') || [] });
 		$prefs->set('genres', \@genres) if $old ne join("\x00", @genres);
 	}
@@ -52,7 +56,17 @@ sub beforeRender {
 	my $i = 0;
 	$params->{genreList} = [ map { { id => $i++, name => $_->[0], albums => $_->[1], selected => $selected{$_->[0]} ? 1 : 0 } }
 		@{ Plugins::RediscoverReleases::List::genres() } ];
-	$params->{allGenres} = %selected ? 0 : 1;
+	$params->{genreFilter} = Plugins::RediscoverReleases::List::genreFilter();
+
+	my $libraryId = $prefs->get('libraryId') || '';
+	$params->{libraryList} = Plugins::RediscoverReleases::List::libraries();
+	my $known = grep { $_->[0] eq $libraryId } @{ $params->{libraryList} };
+	# Not among LMS's named views: still used while its tracks are there (List::libraryExists), shown by its ID
+	$params->{libraryMissing} = ($libraryId && !$known) ? $libraryId : '';
+	$params->{libraryGone} = ($libraryId && !$known && !Plugins::RediscoverReleases::List::libraryExists($libraryId)) ? 1 : 0;
+
+	# Ratings in half stars, as 0-100 (Ratings Light and LMS store 20 per star)
+	$params->{ratingChoices} = [ map { { value => $_ * 10, stars => $_ / 2 } } 1 .. 10 ];
 
 	my $built = $prefs->get('builtAt');
 	my $stats = $prefs->get('stats') || {};
