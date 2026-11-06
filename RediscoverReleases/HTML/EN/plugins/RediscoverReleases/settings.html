@@ -28,8 +28,10 @@
 [% END %]
 
 [% WRAPPER setting title="PLUGIN_REDISCOVER_RELEASES_UNPLAYED" desc="PLUGIN_REDISCOVER_RELEASES_UNPLAYED_DESC" %]
-	<input type="checkbox" name="pref_includeUnplayed" id="pref_includeUnplayed" value="1" [% IF prefs.pref_includeUnplayed %]checked="checked"[% END %]>
-	<label for="pref_includeUnplayed">[% 'PLUGIN_REDISCOVER_RELEASES_UNPLAYED_INCLUDE' | string %]</label>
+	<select name="pref_includeUnplayed" class="stdedit">
+		<option value="1" [% IF prefs.pref_includeUnplayed %]selected[% END %]>[% 'PLUGIN_REDISCOVER_RELEASES_INCLUDED' | string %]</option>
+		<option value="0" [% IF !prefs.pref_includeUnplayed %]selected[% END %]>[% 'PLUGIN_REDISCOVER_RELEASES_LEFT_OUT' | string %]</option>
+	</select>
 [% END %]
 
 [% WRAPPER setting title="PLUGIN_REDISCOVER_RELEASES_MINPLAYED" desc="PLUGIN_REDISCOVER_RELEASES_MINPLAYED_DESC" %]
@@ -78,9 +80,12 @@
 		<option value="[% r.value %]" [% IF prefs.pref_minRating == r.value %]selected[% END %]>[% 'PLUGIN_REDISCOVER_RELEASES_RATING_STARS' | string(r.stars) %]</option>
 		[% END %]
 	</select>
-	<br>
-	<input type="checkbox" name="pref_includeUnrated" id="pref_includeUnrated" value="1" [% IF prefs.pref_includeUnrated %]checked="checked"[% END %]>
-	<label for="pref_includeUnrated">[% 'PLUGIN_REDISCOVER_RELEASES_UNRATED' | string %]</label>
+	<br><br>
+	[% 'PLUGIN_REDISCOVER_RELEASES_UNRATED' | string %]
+	<select name="pref_includeUnrated" class="stdedit">
+		<option value="1" [% IF prefs.pref_includeUnrated %]selected[% END %]>[% 'PLUGIN_REDISCOVER_RELEASES_INCLUDED' | string %]</option>
+		<option value="0" [% IF !prefs.pref_includeUnrated %]selected[% END %]>[% 'PLUGIN_REDISCOVER_RELEASES_LEFT_OUT' | string %]</option>
+	</select>
 [% END %]
 
 [% WRAPPER setting title="PLUGIN_REDISCOVER_RELEASES_PARTIAL" desc="PLUGIN_REDISCOVER_RELEASES_PARTIAL_DESC" %]

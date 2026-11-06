@@ -92,11 +92,11 @@ if most of the list is gone, it is rebuilt.
 |---|---|---|
 | Number of releases to include in the Rediscover list | 10–1000 | 250 |
 | Prioritize inclusion of releases not played for the last … months | 1–99 | 12 |
-| Unplayed releases: include in the list | on/off | on |
+| Unplayed releases | Included / Left out | Included |
 | Ensure that at least … % of already-played releases are included | 0–100 | 20 |
 | Genres | All genres / Only the selected genres / All except the selected genres, and the genres of the library (with *Select all* and *Select none*) | All genres |
-| Only releases in this Library View | Whole library, or one of LMS's Library Views; with any / all of its tracks in it | Whole library, any |
-| Minimum average rating | Any rating, or ½ to 5 stars; *Include releases without rated tracks* | Any rating, on |
+| Only releases in this Library View | Whole library, or one of LMS's Library Views; releases with at least one track / every track in it | Whole library, at least one track |
+| Minimum average rating | Any rating, or ½ to 5 stars; releases without rated tracks Included / Left out | Any rating, Included |
 | Partially played releases are assumed as | Unplayed / Played | Unplayed |
 | Rebuild the Rediscover list every … hours | 1–999 | 24 |
 | Don't Stop The Music adds … releases at a time | 1–10 | 1 |

@@ -48,11 +48,14 @@ PLUGIN_REDISCOVER_RELEASES_MONTHS_UNIT
 PLUGIN_REDISCOVER_RELEASES_UNPLAYED
 	EN	Unplayed releases
 
-PLUGIN_REDISCOVER_RELEASES_UNPLAYED_INCLUDE
-	EN	Include in the list
+PLUGIN_REDISCOVER_RELEASES_INCLUDED
+	EN	Included
+
+PLUGIN_REDISCOVER_RELEASES_LEFT_OUT
+	EN	Left out
 
 PLUGIN_REDISCOVER_RELEASES_UNPLAYED_DESC
-	EN	Releases none of whose tracks have been played (and, depending on the setting below, partially played ones).
+	EN	Whether releases none of whose tracks have been played (and, depending on the setting below, partially played ones) can be on the list.
 
 PLUGIN_REDISCOVER_RELEASES_MINPLAYED
 	EN	Ensure that at least this share of the list is already-played releases
@@ -85,7 +88,7 @@ PLUGIN_REDISCOVER_RELEASES_LIBRARY
 	EN	Only releases in this Library View
 
 PLUGIN_REDISCOVER_RELEASES_LIBRARY_DESC
-	EN	Library Views are made of tracks: choose whether a release counts as in the view when any of its tracks is in it, or only when all of them are.
+	EN	A Library View is a set of tracks, so a release can be partly in it (e.g. a view of top rated tracks may hold 2 of an album's 12 tracks). Choose whether such a release counts: with "at least one track in it" it does, with "every track in it" only releases entirely in the view count.
 
 PLUGIN_REDISCOVER_RELEASES_LIBRARY_NONE
 	EN	Whole library
@@ -94,10 +97,10 @@ PLUGIN_REDISCOVER_RELEASES_LIBRARY_MISSING
 	EN	(Library View no longer exists: not used)
 
 PLUGIN_REDISCOVER_RELEASES_LIBRARY_ANY
-	EN	with any of its tracks in it
+	EN	releases with at least one track in it
 
 PLUGIN_REDISCOVER_RELEASES_LIBRARY_ALL
-	EN	with all of its tracks in it
+	EN	releases with every track in it
 
 PLUGIN_REDISCOVER_RELEASES_RATING
 	EN	Minimum average rating
@@ -112,7 +115,7 @@ PLUGIN_REDISCOVER_RELEASES_RATING_STARS
 	EN	%s ★
 
 PLUGIN_REDISCOVER_RELEASES_UNRATED
-	EN	Include releases without rated tracks
+	EN	Releases without rated tracks:
 
 PLUGIN_REDISCOVER_RELEASES_PARTIAL
 	EN	Partially played releases are assumed as

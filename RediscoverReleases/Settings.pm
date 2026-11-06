@@ -26,11 +26,6 @@ sub handler {
 	my ($class, $client, $params) = @_;
 
 	if ($params->{saveSettings}) {
-		# An unticked checkbox posts nothing, which LMS saves as undef; the plugin's defaults (on) would then turn
-		# it back on at the next server start. Save 0 instead.
-		foreach my $pref (qw(includeUnplayed includeUnrated)) {
-			$params->{"pref_$pref"} = 0 unless $params->{"pref_$pref"};
-		}
 
 		# One checkbox per genre (genre_<n>, value = name). Kept with "All genres" too, for switching back.
 		my @genres = sort map { $params->{$_} } grep { /^genre_\d+$/ } keys %$params;
