@@ -19,12 +19,16 @@ fi
 
 mkdir -p releases
 rm -f "$zip"
-# Fixed timestamps and order, so the same source gives the same zip.
+# Timestamps from the released commit and a fixed order, so the same commit gives the same zip.
+# The time must change with every release: LMS keeps its cached strings while the sum of the
+# strings.txt file times is unchanged, and it unpacks plugins with the times from the zip. With a
+# fixed time (up to 1.1.0) an update showed the new settings as raw string tokens until a reinstall.
+stamp=$(git log -1 --format=%ct)
 tmp=$(mktemp -d)
 trap 'rm -rf "$tmp"' EXIT
 cp -r RediscoverReleases "$tmp/"
-find "$tmp/RediscoverReleases" -exec touch -h -d '2026-01-01 00:00:00 UTC' {} +
-(cd "$tmp" && find RediscoverReleases -print | LC_ALL=C sort | zip -X -q -@ "$OLDPWD/$zip")
+find "$tmp/RediscoverReleases" -exec touch -h -d "@$stamp" {} +
+(cd "$tmp" && find RediscoverReleases -print | LC_ALL=C sort | TZ=UTC zip -X -q -@ "$OLDPWD/$zip")
 sha=$(sha1sum "$zip" | cut -d' ' -f1)
 
 cat > repo.xml <<XML
