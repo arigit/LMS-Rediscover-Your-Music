@@ -36,8 +36,8 @@ cat > repo.xml <<XML
   <plugins>
     <plugin name="RediscoverReleases" version="$version" minTarget="8.0.0" maxTarget="*">
       <title lang="EN">Rediscover Releases</title>
-      <desc lang="EN">A Material skin home row of random releases that prefers albums with no recent plays, with genre, play history and rebuild settings.</desc>
-      <category>database</category>
+      <desc lang="EN">A list of random releases that prefers albums with no recent plays: a Material skin home row, a My Music browse entry and a Don't Stop The Music mix.</desc>
+      <category>playlists</category>
       <url>$pages/$zip</url>
       <sha>$sha</sha>
       <icon>$pages/RediscoverReleases/HTML/EN/plugins/RediscoverReleases/html/images/icon_svg.png</icon>

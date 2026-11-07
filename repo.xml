@@ -6,8 +6,8 @@
   <plugins>
     <plugin name="RediscoverReleases" version="1.1.0" minTarget="8.0.0" maxTarget="*">
       <title lang="EN">Rediscover Releases</title>
-      <desc lang="EN">A Material skin home row of random releases that prefers albums with no recent plays, with genre, play history and rebuild settings.</desc>
-      <category>database</category>
+      <desc lang="EN">A list of random releases that prefers albums with no recent plays: a Material skin home row, a My Music browse entry and a Don't Stop The Music mix.</desc>
+      <category>playlists</category>
       <url>https://arigit.github.io/LMS-Rediscover-Your-Music/releases/RediscoverReleases-1.1.0.zip</url>
       <sha>72edf8799ae60d4fc22fc85aa780e8328ef3d6ff</sha>
       <icon>https://arigit.github.io/LMS-Rediscover-Your-Music/RediscoverReleases/HTML/EN/plugins/RediscoverReleases/html/images/icon_svg.png</icon>
